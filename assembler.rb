@@ -88,24 +88,41 @@ if(file_specified && file_exists)
   # set the input back to the beginning of input_file
   input_file.rewind
 
-  # regex to match code sections, and pseudo instructions
+  # regex to match code sections, and instructions(normal&pseudo)
   section_regex = /[a-zA-Z]:/
-  #pseudo_regex = //
+  inst_regex = /\s([a-zA-Z]+)/
 
   line_cnt = 0
   # SECOND PASS ->
   while (line = input_file.gets)
     #Check if the line indicates a new code section
-    num = line =~ section_regex
-    if num
-      sec_name = line[0..num]
-      section_hash[sec_name] = line_cnt
+    if is_section = line =~ section_regex
+      sec_name = section_regex.match(line)[1]
+      if sec_name
+        section_hash[sec_name] = line_cnt
+      end
+
     end
 
+#    section_hash.each do |name, val|
+#      puts "Name: #{name}"
+#    end
     #check if the line is an instruction
-    
+    if is_inst = line =~ inst_regex
+      inst_name = inst_regex.match(line)[1].strip.downcase
+      puts inst_name
 
-    
+      if opcode1_hash[inst_name]
+        # instruction is a primary opcode
+        puts "Primary opcode"
+      end
+      if opcode2_hash[inst_name]
+        puts "Secondary opcode"
+      end
+      if index = pseudo_inst.index(inst_name)
+        puts "pseudo opcode"
+      end
+    end
   end
 
 

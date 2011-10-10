@@ -1,0 +1,8 @@
+This is a ruby assembler for CS 3220 Processor Design
+
+This is a ruby assembler to convert the .a32 assembly files into
+a .mif file. To run the program use:
+  'ruby assembler.rb filename.a32'
+
+
+Test2.mif is an example of a compiled .a32 file

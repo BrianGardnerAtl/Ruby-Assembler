@@ -29,7 +29,7 @@ Init:
 	ADDI	T0,T0,4			; Move to next element
 	BNE		T0,T1,Init		; if(CurPtr!=EndPtr) goto Init;
 	CALL	ChkAsc(Zero)	; Call ChkAsc
-
+	
 	ADDI	S0,Zero,ItNum	; We will keep the iteration count in S0
 	SW		S0,HEX(Zero)	; Display loop counter
 MainLoop:
