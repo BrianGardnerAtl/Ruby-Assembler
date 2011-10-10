@@ -89,38 +89,44 @@ if(file_specified && file_exists)
   input_file.rewind
 
   # regex to match code sections, and instructions(normal&pseudo)
-  section_regex = /[a-zA-Z]:/
+  section_regex = /[a-zA-Z]+:/
   inst_regex = /\s([a-zA-Z]+)/
+  orig_regex = /ORIG/
 
   line_cnt = 0
   # SECOND PASS ->
   while (line = input_file.gets)
-    #Check if the line indicates a new code section
-    if is_section = line =~ section_regex
-      sec_name = section_regex.match(line)[1]
-      if sec_name
-        section_hash[sec_name] = line_cnt
-      end
-
+    # Check for the ORIG keyword to set the line_cnt var
+    if line =~ orig_regex
+      orig, mem_addr = line.split(' ')
+      puts "Found ORIG address: #{mem_addr}"
     end
 
-#    section_hash.each do |name, val|
-#      puts "Name: #{name}"
-#    end
+    #Check if the line indicates a new code section
+    if is_section = line =~ section_regex
+      sec_name = section_regex.match(line)[0]
+      if sec_name
+        puts "New section: #{sec_name[0..-2]}, Line count: #{line_cnt}"
+        section_hash[sec_name[0..-2]] = line_cnt
+      end
+    end
+
     #check if the line is an instruction
     if is_inst = line =~ inst_regex
       inst_name = inst_regex.match(line)[1].strip.downcase
-      puts inst_name
 
       if opcode1_hash[inst_name]
         # instruction is a primary opcode
-        puts "Primary opcode"
+        puts "Primary opcode: #{inst_name}"
+        line_cnt+=1
       end
       if opcode2_hash[inst_name]
-        puts "Secondary opcode"
+        puts "Secondary opcode: #{inst_name}"
+        line_cnt+=1
       end
       if index = pseudo_inst.index(inst_name)
-        puts "pseudo opcode"
+        puts "Pseudo opcode: #{inst_name}"
+        line_cnt+=1
       end
     end
   end
