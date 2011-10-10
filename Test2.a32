@@ -1,0 +1,184 @@
+	; Addresses for I/O
+.NAME	KEY =0xFFFFFF00
+.NAME	SW  =0xFFFFFF10
+.NAME	HEX =0xFFFFFF80
+.NAME	LEDR=0xFFFFFF90
+.NAME	LEDG=0xFFFFFFA0
+
+	; This should never be executed
+	.ORIG 0
+	addi		s1,s0,0x0BEF
+AtZero:
+	; Turn on LEDR, display A0A0 on HEX
+	not		t0,zero
+	sw		t0,LEDR(zero)
+	addi	t0,zero,0xBAD
+	sw		t0,HEX(zero)
+	br		AtZero
+	
+	; Now the actual code
+	.ORIG 0x20
+	addi		s2,s0,0x0BEF
+	; Zero out the zero register
+	xor		zero,zero,zero
+	; Put 1 on LEDG and turn off LEDR
+	addi	s0,zero,1
+	sw		s0,LEDG(zero)
+	sw		zero,LEDR(zero)
+	; See if instruction at address 0 was executed (it should not be)
+	bne		s2,s1,NoExeZero
+HadExeZero:
+	; Turn on LEDR, display what's in s1
+	not		t0,zero
+	sw		t0,LEDR(zero)
+	sw		s1,HEX(zero)
+	br		HadExeZero
+NoExeZero:
+	; Put 2 on LEDG, LEDR should still be off
+	addi	s0,s0,1
+	sw		s0,LEDG(zero)
+	addi	t0,zero,-1
+	hi		t0,t0,-1
+	addi	t1,zero,2
+	addi	t2,zero,1
+	add		t3,t0,t1
+	beq		t2,t3,AddWorks
+AddFailed:
+	; Turn on LEDR, display what's in t2
+	not		t0,zero
+	sw		t0,LEDR(zero)
+	sw		t2,HEX(zero)
+	br		AddFailed	
+AddWorks:
+	; Put 3 on LEDG, LEDR should still be off
+	addi	s0,s0,1
+	sw		s0,LEDG(zero)
+	addi	t0,zero,7	; t0 is 7  (0x00000007)
+	addi	t1,t0,3	    ; t1 is 10 (0x0000000A)
+	add		t2,t1,t1    ; t2 is 20 (0x00000014)
+	ori		t3,t2,0x25	; t3 is     0x00000035)
+	andi	t4,t3,0xD1	; t4 is 17  0x00000011
+	xor		t2,t2,t3	; t2 is 33  0x00000021
+	or		t3,t2,t0	; t3 is     0x00000027
+	nor		t4,t0,t4	; t4 is -2  0xFFFFFFFE
+	nand	t5,t4,t3	; t5 is     0xFFFFFFD9
+	sub		t6,t0,t4	; t6 is 9   0x00000009
+	and		t7,t6,t4	; t7 is 8	0x00000008
+	nxor	t6,t6,t7	; t6 is -2  0xFFFFFFFE
+	xor		t4,t4,t5	; t5 is	    0x00000027
+	sub		t2,t2,t4	; t2 is -6
+	add		t2,t6,t2	; t2 is -8
+	addi	t1,zero,-8
+	bne		t2,t1,AluWorks
+AluFailed:
+	; Turn on LEDR, display what's in t2
+	not		t0,zero
+	sw		t0,LEDR(zero)
+	sw		t2,HEX(zero)
+	br		AluFailed	
+AluWorks:
+	; Put 4 on LEDG, LEDR should still be off
+	addi	s0,s0,1
+	sw		s0,LEDG(zero)
+	addi	t7,zero,1
+	addi	t0,zero,75
+	addi	t1,zero,34
+	addi	t2,zero,-80
+	le		t4,t0,t1
+	bne		t4,zero,CmpFailed
+	lt		t4,t0,t1
+	bne		t4,zero,CmpFailed
+	eq		t4,t0,t1
+	bne		t4,zero,CmpFailed
+	ne		t4,t0,t1
+	bne		t4,t7,CmpFailed
+	gt		t4,t0,t1
+	bne		t4,t7,CmpFailed
+	ge		t4,t0,t1
+	bne		t4,t7,CmpFailed	
+	le		t4,t1,t1
+	bne		t4,t7,CmpFailed
+	lt		t4,t1,t1
+	bne		t4,zero,CmpFailed
+	eq		t4,t1,t1
+	bne		t4,t7,CmpFailed
+	ne		t4,t1,t1
+	bne		t4,zero,CmpFailed
+	gt		t4,t1,t1
+	bne		t4,zero,CmpFailed
+	ge		t4,t1,t1
+	bne		t4,t7,CmpFailed	
+	le		t4,t2,t0
+	bne		t4,t7,CmpFailed
+	lt		t4,t2,t0
+	bne		t4,t7,CmpFailed
+	eq		t4,t2,t0
+	bne		t4,zero,CmpFailed
+	ne		t4,t2,t0
+	bne		t4,t7,CmpFailed
+	gt		t4,t2,t0
+	bne		t4,zero,CmpFailed
+	ge		t4,t2,t0
+	bne		t4,zero,CmpFailed	
+	br		CmpWorks
+CmpFailed:
+	; Turn on LEDR, display what's in t4
+	not		t0,zero
+	sw		t0,LEDR(zero)
+	sw		t4,HEX(zero)
+	br		CmpFailed
+CmpWorks:
+	; Put 5 on LEDG, LEDR should still be off
+	addi	s0,s0,1
+	sw		s0,LEDG(zero)
+	addi	t0,zero,0x37
+	addi	t1,zero,0xE1
+	addi	t7,zero,1024
+	sw		t0,0(t7)
+	sw		t1,4(t7)
+	addi	t7,t7,4
+	lw		t2,0(t7)
+	bne		t2,t1,MemFailed
+	lw		t2,-4(t7)
+	beq		t2,t0,MemWorks
+MemFailed:
+	; Turn on LEDR, display what's in t2
+	not		t0,zero
+	sw		t0,LEDR(zero)
+	sw		t2,HEX(zero)
+	br		MemFailed
+MemWorks:
+	; Put 6 on LEDG, LEDR should still be off
+	addi	s0,s0,1
+	sw		s0,LEDG(zero)
+	addi	t1,zero,JalRet
+	jal		t0,JalTarg(zero)
+JalRet:
+	br		JalWorks
+JalTarg:
+	bne		t0,t1,JalFailed
+	jal		t1,0(t0)
+JalFailed:
+	; Turn on LEDR, display what's in t0
+	not		t0,zero
+	sw		t0,LEDR(zero)
+	sw		t0,HEX(zero)
+	br		JalFailed
+JalWorks:
+	; Put 7 on LEDG, LEDR should still be off
+	addi	s0,s0,1
+	sw		s0,LEDG(zero)
+WaitPress1:
+	lw		t1,KEY(zero)
+	sw		t1,HEX(zero)
+	beq		t1,zero,WaitPress1
+WaitRelease1:
+	lw		t1,KEY(zero)
+	sw		t1,HEX(zero)
+	bne		t1,zero,WaitRelease1
+Done:
+	; Turn on LEDG, put FFFF on HEX, LEDR should still be off
+	not		t0,zero
+	sw		t0,LEDG(zero)
+	sw		t0,HEX(zero)
+	br		Done

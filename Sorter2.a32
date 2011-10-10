@@ -1,0 +1,145 @@
+
+; Stack begins at the very top of memory
+.NAME	StkTop=8192
+;  Number of sorting iterations
+.NAME	ItNum=300
+; The array starts at data address 0x100 and has 1024 elements (4kB)
+.NAME	Array=0x100
+.NAME	ArrayBytes=4096
+; Addresses for I/O
+.NAME	HEX =0xFFFFFF80
+.NAME	LEDR=0xFFFFFF90
+.NAME	LEDG=0xFFFFFFA0
+
+	;  Now the actual code
+	.ORIG 0x20
+	XOR		Zero,Zero,Zero	; Set Zero register to zero
+	ADDI	SP,Zero,StkTop	; Make SP point to top of stack
+	SW		Zero,LEDR(Zero)	; Turn off LEDR
+	SW		Zero,LEDG(Zero)	; Turn off LEDG
+	
+	; Initialize the array
+	ADDI 	T0,Zero,Array	; T0 is CurPtr, set to start of array
+	ADDI	T1,T0,ArrayBytes; T1 is EndPtr, set to end of array
+	; Array elements will be 20, 27, 34, etc.
+	ADDI	T2,Zero,20		; A2 is 20
+Init:
+	SW		T2,0(T0)		; Store value into an element
+	ADDI	T2,T2,7			; Add 7 to the value for next element
+	ADDI	T0,T0,4			; Move to next element
+	BNE		T0,T1,Init		; if(CurPtr!=EndPtr) goto Init;
+	CALL	ChkAsc(Zero)	; Call ChkAsc
+
+	ADDI	S0,Zero,ItNum	; We will keep the iteration count in S0
+	SW		S0,HEX(Zero)	; Display loop counter
+MainLoop:
+	ADDI	A0,Zero,Array
+	ADDI	A1,A0,ArrayBytes
+	CALL	SortDesc(Zero)	; SortDesc(Arry,ArrBytes)
+	CALL	ChkDesc(Zero)	; ChkDesc()
+	ADDI	A0,Zero,Array
+	ADDI	A1,A0,ArrayBytes
+	CALL	SortAsc(Zero)	; SortAsc(Arry,ArrBytes)
+	CALL 	ChkAsc(Zero)	; ChkAsc()
+	; Decrement iteration counter and loop back if not done
+	ADDI	S0,S0,-1
+	SW		S0,HEX(Zero)	; Display loop counter
+	BNE		S0,Zero,MainLoop
+Done:
+	NOT		T0,Zero			; All-ones in T0
+	SW		T0,LEDG(Zero)	; Turn on LEDG
+	SW		Zero,LEDR(Zero)	; Turn off LEDR
+	BR		Done			; Loop forever
+
+	; Verifies that the array is sorted in ascending order
+ChkAsc:
+	ADDI	T0,Zero,Array
+	ADDI	T1,T0,ArrayBytes
+	; Array elements should be 20, 27, 34, etc.
+	ADDI	T2,Zero,20
+LoopChkAsc:
+	LW		T7,0(T0)
+	BEQ		T2,T7,GoodChkAsc
+ErrChkAsc:
+	SW		T7,HEX(Zero)	; Put value we read on HEX
+	ADDI	T0,Zero,0x3E0
+	SW		T0,LEDR(GP)		; Turn on upper half of LEDR
+	BR 		ErrChkAsc		; Loop forever
+GoodChkAsc:
+	ADDI	T2,T2,7
+	ADDI	T0,T0,4
+	BNE		T0,T1,LoopChkAsc
+	RET
+
+	; Verifies that the array is sorted in descending order
+ChkDesc:
+	ADDI	T1,Zero,Array
+	ADDI	T0,T1,ArrayBytes
+	; Array elements should be 20, 27, 34, etc.
+	ADDI	T2,Zero,20
+LoopChkDesc:
+	SUBI	T0,T0,4
+	LW		T7,0(T0)
+	BEQ		T2,T7,GoodChkDesc
+ErrChkDesc:
+	SW		T7,HEX(Zero)	; Put value we read on HEX
+	ADDI	T0,Zero,0x01F
+	SW		T0,LEDR(GP)		; Turn on lower half of LEDR
+	BR 		ErrChkDesc		; Loop forever
+GoodChkDesc:
+	ADDI	T2,T2,7
+	BNE		T0,T1,LoopChkDesc
+	RET
+
+SortAsc:; SortAsc(beg,end)
+        ; Sorts an array that starts at beg and ends at end
+        ; Sorts in ascending order (low to high values)
+	; The sorting strategy is immediate-swap selection sort
+	; Outer loop (ptr "i" in T0) goes from start to end
+	ADDI	T0,A0,0
+SortAscLoopI:
+	BEQ     T0,A1,SortAscEndI
+	LW		T4,0(T0)	; T4 will be equal to what should be in *i
+	; Inner loop (ptr "j" in T1) goes from i+4 to end
+    ADDI    T1,T0,4
+SortAscLoopJ:  
+    BEQ     T1,A1,SortAscEndJ
+	LW		T5,0(T1)	; T5=*j
+	BLE		T4,T5,SortAscNoSwap
+	SW		T4,0(T1)	; *j=T4 (*j becomes what was in *i)
+	ADD		T4,T5,Zero	; T4=T5 (*i becomes what was in *j)
+SortAscNoSwap:
+	ADDI	T1,T1,4
+	BR		SortAscLoopJ
+SortAscEndJ:
+	SW		T4,0(T0)	; Save T4 back into *i
+	ADDI	T0,T0,4
+	BR		SortAscLoopI
+SortAscEndI:
+	RET
+	
+SortDesc:; SortDesc(beg,end)
+        ; Sorts an array that starts at beg and ends at end
+        ; Sorts in descending order (high to low values)
+	; The sorting strategy is immediate-swap selection sort
+	; Outer loop (ptr "i" in T0) goes from start to end
+	ADDI	T0,A0,0
+SortDescLoopI:
+	BEQ     T0,A1,SortDescEndI
+	; Inner loop (ptr "j" in T1) goes from i+4 to end
+    ADDI    T1,T0,4
+SortDescLoopJ:  
+    BEQ     T1,A1,SortDescEndJ
+	LW		T4,0(T0)	; T4=*i
+	LW		T5,0(T1)	; T5=*j
+	BGE		T4,T5,SortDescNoSwap
+	SW		T4,0(T1)	; *j=T4
+	SW		T5,0(T0)	; *i=T5
+SortDescNoSwap:
+	ADDI	T1,T1,4
+	BR		SortDescLoopJ
+SortDescEndJ:
+	ADDI	T0,T0,4
+	BR		SortDescLoopI
+SortDescEndI:
+	RET

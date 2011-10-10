@@ -1,0 +1,65 @@
+Registers:
+  R0 -> Zero
+  R1 -> A0
+  R2 -> A1
+  R3 -> A2
+  R4 -> A3
+  R5 -> RV (return value)
+  R6 -> reserved for assembler
+  R7 -> reserved for assembler
+  R8-R15 -> T0-T7
+  R16-R23 -> S0-S7
+  R24-R27 -> reserved
+  R28 -> global pointer
+  R29 -> frame pointer
+  R30 -> stack pointer
+  R31 -> return address
+
+Primary Opcodes:
+  ALUR 000000
+  ANDI 000001
+  ORI  000010
+  HI   000011
+  ADDI 000100
+  LW   010000
+  SW   010001
+  JAL  100000
+  BEQ  100001
+  BNE  100101
+
+Secondary Opcodes:
+  AND  000001
+  OR   000010
+  XOR  000011
+  NAND 000101
+  NOR  000110
+  NXOR 000111
+  ADD  010000
+  SUB  010001
+  EQ   100001
+  LT   100010
+  LE   100011
+  NE   100101
+  GE   100110
+  GT   100111
+
+Assembler syntax
+  .ORG <number>
+    -Changes 'current' address to <number>
+  .WORD <value>
+    -Places 32-bit word <value> at the current address
+    -<value> can be a number or label name
+    -if <value> is a label name, value is the full 32-bit label-address
+  .NAME <name>=<value>
+    -Defnes a name(label) with the given value(number)
+
+    Pseudo-instructions
+    SUBI Ri,Rj,Imm -> ADDI Ri,Rj,-Imm
+    NOT Ri,Rj -> NOR Ri,Rj,Rj
+    BR Label -> BEQ Zero, Zero, Label
+    BLT Ri,Rj,Label -> LT R6,Ri,Rj
+                       BNE R6,Zero,Label
+    BLE,BGT,BGE -> Similar to BLT
+    CALL Imm(Ri) -> JAL RA,Imm(Ri)
+    JMP Imm(Ri) -> JAL R6,Imm(Ri)
+    RET -> JAL R6,0(RA)
