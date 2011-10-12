@@ -1,0 +1,90 @@
+WIDTH=32;
+DEPTH=2048;
+ADDRESS_RADIX=HEX;
+DATA_RADIX=HEX;
+CONTENT BEGIN
+[00000000..00000007] : DEAD;
+-- @ 0x00000000 : 	XOR		Zero,Zero,Zero	
+-- @ 0x00000004 : 	ADDI	SP,Zero,StkTop	
+-- @ 0x00000008 : 	SW		Zero,LEDR(Zero)	
+-- @ 0x0000000c : 	SW		Zero,LEDG(Zero)	
+-- @ 0x00000010 : 	ADDI 	T0,Zero,Array	
+-- @ 0x00000014 : 	ADDI	T1,T0,ArrayBytes
+-- @ 0x00000018 : 	ADDI	T2,Zero,20		
+-- @ 0x0000001c : 	SW		T2,0(T0)		
+-- @ 0x00000020 : 	ADDI	T2,T2,7			
+-- @ 0x00000024 : 	ADDI	T0,T0,4			
+-- @ 0x00000028 : 	BNE		T0,T1,Init		
+-- @ 0x0000002c : 	CALL	ChkAsc(Zero)	
+-- @ 0x00000030 : 	ADDI	S0,Zero,ItNum	
+-- @ 0x00000034 : 	SW		S0,HEX(Zero)	
+-- @ 0x00000038 : 	ADDI	A0,Zero,Array
+-- @ 0x0000003c : 	ADDI	A1,A0,ArrayBytes
+-- @ 0x00000040 : 	CALL	SortDesc(Zero)	
+-- @ 0x00000044 : 	CALL	ChkDesc(Zero)	
+-- @ 0x00000048 : 	ADDI	A0,Zero,Array
+-- @ 0x0000004c : 	ADDI	A1,A0,ArrayBytes
+-- @ 0x00000050 : 	CALL	SortAsc(Zero)	
+-- @ 0x00000054 : 	CALL 	ChkAsc(Zero)	
+-- @ 0x00000058 : 	ADDI	S0,S0,-1
+-- @ 0x0000005c : 	SW		S0,HEX(Zero)	
+-- @ 0x00000060 : 	BNE		S0,Zero,MainLoop
+-- @ 0x00000064 : 	NOT		T0,Zero			
+-- @ 0x00000068 : 	SW		T0,LEDG(Zero)	
+-- @ 0x0000006c : 	SW		Zero,LEDR(Zero)	
+-- @ 0x00000070 : 	BR		Done			
+-- @ 0x00000074 : 	ADDI	T0,Zero,Array
+-- @ 0x00000078 : 	ADDI	T1,T0,ArrayBytes
+-- @ 0x0000007c : 	ADDI	T2,Zero,20
+-- @ 0x00000080 : 	LW		T7,0(T0)
+-- @ 0x00000084 : 	BEQ		T2,T7,GoodChkAsc
+-- @ 0x00000088 : 	SW		T7,HEX(Zero)	
+-- @ 0x0000008c : 	ADDI	T0,Zero,0x3E0
+-- @ 0x00000090 : 	SW		T0,LEDR(GP)		
+-- @ 0x00000094 : 	BR 		ErrChkAsc		
+-- @ 0x00000098 : 	ADDI	T2,T2,7
+-- @ 0x0000009c : 	ADDI	T0,T0,4
+-- @ 0x000000a0 : 	BNE		T0,T1,LoopChkAsc
+-- @ 0x000000a4 : 	RET
+-- @ 0x000000a8 : 	ADDI	T1,Zero,Array
+-- @ 0x000000ac : 	ADDI	T0,T1,ArrayBytes
+-- @ 0x000000b0 : 	ADDI	T2,Zero,20
+-- @ 0x000000b4 : 	SUBI	T0,T0,4
+-- @ 0x000000b8 : 	LW		T7,0(T0)
+-- @ 0x000000bc : 	BEQ		T2,T7,GoodChkDesc
+-- @ 0x000000c0 : 	SW		T7,HEX(Zero)	
+-- @ 0x000000c4 : 	ADDI	T0,Zero,0x01F
+-- @ 0x000000c8 : 	SW		T0,LEDR(GP)		
+-- @ 0x000000cc : 	BR 		ErrChkDesc		
+-- @ 0x000000d0 : 	ADDI	T2,T2,7
+-- @ 0x000000d4 : 	BNE		T0,T1,LoopChkDesc
+-- @ 0x000000d8 : 	RET
+-- @ 0x000000dc : 	ADDI	T0,A0,0
+-- @ 0x000000e0 : 	BEQ     T0,A1,SortAscEndI
+-- @ 0x000000e4 : 	LW		T4,0(T0)	
+-- @ 0x000000e8 :     ADDI    T1,T0,4
+-- @ 0x000000ec :     BEQ     T1,A1,SortAscEndJ
+-- @ 0x000000f0 : 	LW		T5,0(T1)	
+-- @ 0x000000f4 : 	BLE		T4,T5,SortAscNoSwap
+-- @ 0x000000f8 : 	SW		T4,0(T1)	
+-- @ 0x000000fc : 	ADD		T4,T5,Zero	
+-- @ 0x00000100 : 	ADDI	T1,T1,4
+-- @ 0x00000104 : 	BR		SortAscLoopJ
+-- @ 0x00000108 : 	SW		T4,0(T0)	
+-- @ 0x0000010c : 	ADDI	T0,T0,4
+-- @ 0x00000110 : 	BR		SortAscLoopI
+-- @ 0x00000114 : 	RET
+-- @ 0x00000118 : 	ADDI	T0,A0,0
+-- @ 0x0000011c : 	BEQ     T0,A1,SortDescEndI
+-- @ 0x00000120 :     ADDI    T1,T0,4
+-- @ 0x00000124 :     BEQ     T1,A1,SortDescEndJ
+-- @ 0x00000128 : 	LW		T4,0(T0)	
+-- @ 0x0000012c : 	LW		T5,0(T1)	
+-- @ 0x00000130 : 	BGE		T4,T5,SortDescNoSwap
+-- @ 0x00000134 : 	SW		T4,0(T1)	
+-- @ 0x00000138 : 	SW		T5,0(T0)	
+-- @ 0x0000013c : 	ADDI	T1,T1,4
+-- @ 0x00000140 : 	BR		SortDescLoopJ
+-- @ 0x00000144 : 	ADDI	T0,T0,4
+-- @ 0x00000148 : 	BR		SortDescLoopI
+-- @ 0x0000014c : 	RET
