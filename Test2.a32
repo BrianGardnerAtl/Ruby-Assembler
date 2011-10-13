@@ -55,7 +55,7 @@ AddWorks:
 	sw		s0,LEDG(zero)
 	addi	t0,zero,7	; t0 is 7  (0x00000007)
 	addi	t1,t0,3	    ; t1 is 10 (0x0000000A)
-
+	add		t2,t1,t1    ; t2 is 20 (0x00000014)
 	ori		t3,t2,0x25	; t3 is     0x00000035)
 	andi	t4,t3,0xD1	; t4 is 17  0x00000011
 	xor		t2,t2,t3	; t2 is 33  0x00000021

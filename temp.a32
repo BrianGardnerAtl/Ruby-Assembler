@@ -1,184 +1,147 @@
-	; Addresses for I/O
-.NAME	KEY =0xFFFFFF00
-.NAME	SW  =0xFFFFFF10
+
+; Stack begins at the very top of memory
+.NAME	StkTop=8192
+;  Number of sorting iterations
+.NAME	ItNum=300
+; The array starts at data address 0x100 and has 1024 elements (4kB)
+.NAME	Array=0x100
+.NAME	ArrayBytes=4096
+; Addresses for I/O
 .NAME	HEX =0xFFFFFF80
 .NAME	LEDR=0xFFFFFF90
 .NAME	LEDG=0xFFFFFFA0
 
-	; This should never be executed
-	.ORIG 0
-	addi		s1,s0,0x0BEF
-AtZero:
-	; Turn on LEDR, display A0A0 on HEX
-	nor t0,zero,zero
-	sw		t0,LEDR(zero)
-	addi	t0,zero,0xBAD
-	sw		t0,HEX(zero)
-	beq zero,zero,AtZero
-	
-	; Now the actual code
+	;  Now the actual code
 	.ORIG 0x20
-	addi		s2,s0,0x0BEF
-	; Zero out the zero register
-	xor		zero,zero,zero
-	; Put 1 on LEDG and turn off LEDR
-	addi	s0,zero,1
-	sw		s0,LEDG(zero)
-	sw		zero,LEDR(zero)
-	; See if instruction at address 0 was executed (it should not be)
-	bne		s2,s1,NoExeZero
-HadExeZero:
-	; Turn on LEDR, display what's in s1
-	nor t0,zero,zero
-	sw		t0,LEDR(zero)
-	sw		s1,HEX(zero)
-	beq zero,zero,HadExeZero
-NoExeZero:
-	; Put 2 on LEDG, LEDR should still be off
-	addi	s0,s0,1
-	sw		s0,LEDG(zero)
-	addi	t0,zero,-1
-	hi		t0,t0,-1
-	addi	t1,zero,2
-	addi	t2,zero,1
-	add		t3,t0,t1
-	beq		t2,t3,AddWorks
-AddFailed:
-	; Turn on LEDR, display what's in t2
-	nor t0,zero,zero
-	sw		t0,LEDR(zero)
-	sw		t2,HEX(zero)
-	beq zero,zero,AddFailed
-AddWorks:
-	; Put 3 on LEDG, LEDR should still be off
-	addi	s0,s0,1
-	sw		s0,LEDG(zero)
-	addi	t0,zero,7	; t0 is 7  (0x00000007)
-	addi	t1,t0,3	    ; t1 is 10 (0x0000000A)
-
-	ori		t3,t2,0x25	; t3 is     0x00000035)
-	andi	t4,t3,0xD1	; t4 is 17  0x00000011
-	xor		t2,t2,t3	; t2 is 33  0x00000021
-	or		t3,t2,t0	; t3 is     0x00000027
-	nor		t4,t0,t4	; t4 is -2  0xFFFFFFFE
-	nand	t5,t4,t3	; t5 is     0xFFFFFFD9
-	sub		t6,t0,t4	; t6 is 9   0x00000009
-	and		t7,t6,t4	; t7 is 8	0x00000008
-	nxor	t6,t6,t7	; t6 is -2  0xFFFFFFFE
-	xor		t4,t4,t5	; t5 is	    0x00000027
-	sub		t2,t2,t4	; t2 is -6
-	add		t2,t6,t2	; t2 is -8
-	addi	t1,zero,-8
-	bne		t2,t1,AluWorks
-AluFailed:
-	; Turn on LEDR, display what's in t2
-	nor t0,zero,zero
-	sw		t0,LEDR(zero)
-	sw		t2,HEX(zero)
-	beq zero,zero,AluFailed
-AluWorks:
-	; Put 4 on LEDG, LEDR should still be off
-	addi	s0,s0,1
-	sw		s0,LEDG(zero)
-	addi	t7,zero,1
-	addi	t0,zero,75
-	addi	t1,zero,34
-	addi	t2,zero,-80
-	le		t4,t0,t1
-	bne		t4,zero,CmpFailed
-	lt		t4,t0,t1
-	bne		t4,zero,CmpFailed
-	eq		t4,t0,t1
-	bne		t4,zero,CmpFailed
-	ne		t4,t0,t1
-	bne		t4,t7,CmpFailed
-	gt		t4,t0,t1
-	bne		t4,t7,CmpFailed
-	ge		t4,t0,t1
-	bne		t4,t7,CmpFailed	
-	le		t4,t1,t1
-	bne		t4,t7,CmpFailed
-	lt		t4,t1,t1
-	bne		t4,zero,CmpFailed
-	eq		t4,t1,t1
-	bne		t4,t7,CmpFailed
-	ne		t4,t1,t1
-	bne		t4,zero,CmpFailed
-	gt		t4,t1,t1
-	bne		t4,zero,CmpFailed
-	ge		t4,t1,t1
-	bne		t4,t7,CmpFailed	
-	le		t4,t2,t0
-	bne		t4,t7,CmpFailed
-	lt		t4,t2,t0
-	bne		t4,t7,CmpFailed
-	eq		t4,t2,t0
-	bne		t4,zero,CmpFailed
-	ne		t4,t2,t0
-	bne		t4,t7,CmpFailed
-	gt		t4,t2,t0
-	bne		t4,zero,CmpFailed
-	ge		t4,t2,t0
-	bne		t4,zero,CmpFailed	
-	beq zero,zero,CmpWorks
-CmpFailed:
-	; Turn on LEDR, display what's in t4
-	nor t0,zero,zero
-	sw		t0,LEDR(zero)
-	sw		t4,HEX(zero)
-	beq zero,zero,CmpFailed
-CmpWorks:
-	; Put 5 on LEDG, LEDR should still be off
-	addi	s0,s0,1
-	sw		s0,LEDG(zero)
-	addi	t0,zero,0x37
-	addi	t1,zero,0xE1
-	addi	t7,zero,1024
-	sw		t0,0(t7)
-	sw		t1,4(t7)
-	addi	t7,t7,4
-	lw		t2,0(t7)
-	bne		t2,t1,MemFailed
-	lw		t2,-4(t7)
-	beq		t2,t0,MemWorks
-MemFailed:
-	; Turn on LEDR, display what's in t2
-	nor t0,zero,zero
-	sw		t0,LEDR(zero)
-	sw		t2,HEX(zero)
-	beq zero,zero,MemFailed
-MemWorks:
-	; Put 6 on LEDG, LEDR should still be off
-	addi	s0,s0,1
-	sw		s0,LEDG(zero)
-	addi	t1,zero,JalRet
-	jal		t0,JalTarg(zero)
-JalRet:
-	beq zero,zero,JalWorks
-JalTarg:
-	bne		t0,t1,JalFailed
-	jal		t1,0(t0)
-JalFailed:
-	; Turn on LEDR, display what's in t0
-	nor t0,zero,zero
-	sw		t0,LEDR(zero)
-	sw		t0,HEX(zero)
-	beq zero,zero,JalFailed
-JalWorks:
-	; Put 7 on LEDG, LEDR should still be off
-	addi	s0,s0,1
-	sw		s0,LEDG(zero)
-WaitPress1:
-	lw		t1,KEY(zero)
-	sw		t1,HEX(zero)
-	beq		t1,zero,WaitPress1
-WaitRelease1:
-	lw		t1,KEY(zero)
-	sw		t1,HEX(zero)
-	bne		t1,zero,WaitRelease1
+	XOR		Zero,Zero,Zero	; Set Zero register to zero
+	ADDI	SP,Zero,StkTop	; Make SP point to top of stack
+	SW		Zero,LEDR(Zero)	; Turn off LEDR
+	SW		Zero,LEDG(Zero)	; Turn off LEDG
+	
+	; Initialize the array
+	ADDI 	T0,Zero,Array	; T0 is CurPtr, set to start of array
+	ADDI	T1,T0,ArrayBytes; T1 is EndPtr, set to end of array
+	; Array elements will be 20, 27, 34, etc.
+	ADDI	T2,Zero,20		; A2 is 20
+Init:
+	SW		T2,0(T0)		; Store value into an element
+	ADDI	T2,T2,7			; Add 7 to the value for next element
+	ADDI	T0,T0,4			; Move to next element
+	BNE		T0,T1,Init		; if(CurPtr!=EndPtr) goto Init;
+	jal ra,ChkAsc(Zero)
+	
+	ADDI	S0,Zero,ItNum	; We will keep the iteration count in S0
+	SW		S0,HEX(Zero)	; Display loop counter
+MainLoop:
+	ADDI	A0,Zero,Array
+	ADDI	A1,A0,ArrayBytes
+	jal ra,SortDesc(Zero)
+	jal ra,ChkDesc(Zero)
+	ADDI	A0,Zero,Array
+	ADDI	A1,A0,ArrayBytes
+	jal ra,SortAsc(Zero)
+	jal ra,ChkAsc(Zero)
+	; Decrement iteration counter and loop back if not done
+	ADDI	S0,S0,-1
+	SW		S0,HEX(Zero)	; Display loop counter
+	BNE		S0,Zero,MainLoop
 Done:
-	; Turn on LEDG, put FFFF on HEX, LEDR should still be off
-	nor t0,zero,zero
-	sw		t0,LEDG(zero)
-	sw		t0,HEX(zero)
+	nor T0,Zero,Zero
+	SW		T0,LEDG(Zero)	; Turn on LEDG
+	SW		Zero,LEDR(Zero)	; Turn off LEDR
 	beq zero,zero,Done
+
+	; Verifies that the array is sorted in ascending order
+ChkAsc:
+	ADDI	T0,Zero,Array
+	ADDI	T1,T0,ArrayBytes
+	; Array elements should be 20, 27, 34, etc.
+	ADDI	T2,Zero,20
+LoopChkAsc:
+	LW		T7,0(T0)
+	BEQ		T2,T7,GoodChkAsc
+ErrChkAsc:
+	SW		T7,HEX(Zero)	; Put value we read on HEX
+	ADDI	T0,Zero,0x3E0
+	SW		T0,LEDR(GP)		; Turn on upper half of LEDR
+	beq zero,zero,ErrChkAsc
+GoodChkAsc:
+	ADDI	T2,T2,7
+	ADDI	T0,T0,4
+	BNE		T0,T1,LoopChkAsc
+	jal r6,0(ra)
+
+	; Verifies that the array is sorted in descending order
+ChkDesc:
+	ADDI	T1,Zero,Array
+	ADDI	T0,T1,ArrayBytes
+	; Array elements should be 20, 27, 34, etc.
+	ADDI	T2,Zero,20
+LoopChkDesc:
+	addi T0,T0,-4
+	LW		T7,0(T0)
+	BEQ		T2,T7,GoodChkDesc
+ErrChkDesc:
+	SW		T7,HEX(Zero)	; Put value we read on HEX
+	ADDI	T0,Zero,0x01F
+	SW		T0,LEDR(GP)		; Turn on lower half of LEDR
+	beq zero,zero,ErrChkDesc
+GoodChkDesc:
+	ADDI	T2,T2,7
+	BNE		T0,T1,LoopChkDesc
+	jal r6,0(ra)
+
+SortAsc:; SortAsc(beg,end)
+        ; Sorts an array that starts at beg and ends at end
+        ; Sorts in ascending order (low to high values)
+	; The sorting strategy is immediate-swap selection sort
+	; Outer loop (ptr "i" in T0) goes from start to end
+	ADDI	T0,A0,0
+SortAscLoopI:
+	BEQ     T0,A1,SortAscEndI
+	LW		T4,0(T0)	; T4 will be equal to what should be in *i
+	; Inner loop (ptr "j" in T1) goes from i+4 to end
+    ADDI    T1,T0,4
+SortAscLoopJ:  
+    BEQ     T1,A1,SortAscEndJ
+	LW		T5,0(T1)	; T5=*j
+	le r6,T4,T5
+	bne r6,zero,SortAscNoSwap
+	SW		T4,0(T1)	; *j=T4 (*j becomes what was in *i)
+	ADD		T4,T5,Zero	; T4=T5 (*i becomes what was in *j)
+SortAscNoSwap:
+	ADDI	T1,T1,4
+	beq zero,zero,SortAscLoopJ
+SortAscEndJ:
+	SW		T4,0(T0)	; Save T4 back into *i
+	ADDI	T0,T0,4
+	beq zero,zero,SortAscLoopI
+SortAscEndI:
+	jal r6,0(ra)
+	
+SortDesc:; SortDesc(beg,end)
+        ; Sorts an array that starts at beg and ends at end
+        ; Sorts in descending order (high to low values)
+	; The sorting strategy is immediate-swap selection sort
+	; Outer loop (ptr "i" in T0) goes from start to end
+	ADDI	T0,A0,0
+SortDescLoopI:
+	BEQ     T0,A1,SortDescEndI
+	; Inner loop (ptr "j" in T1) goes from i+4 to end
+    ADDI    T1,T0,4
+SortDescLoopJ:  
+    BEQ     T1,A1,SortDescEndJ
+	LW		T4,0(T0)	; T4=*i
+	LW		T5,0(T1)	; T5=*j
+	ge r6,T4,T5
+	bne r6,zero,SortDescNoSwap
+	SW		T4,0(T1)	; *j=T4
+	SW		T5,0(T0)	; *i=T5
+SortDescNoSwap:
+	ADDI	T1,T1,4
+	beq zero,zero,SortDescLoopJ
+SortDescEndJ:
+	ADDI	T0,T0,4
+	beq zero,zero,SortDescLoopI
+SortDescEndI:
+	jal r6,0(ra)

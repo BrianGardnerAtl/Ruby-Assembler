@@ -120,7 +120,9 @@ if(file_specified && file_exists)
       if index = pseudo_inst.index(inst_name)
         write = false
         opcode, regs = line.split("\s")
-        regs_arr = regs.split(",")
+        if regs
+          regs_arr = regs.split(",")
+        end
 #        puts "Instruction: #{inst_name}, Regs Arr: #{regs_arr}"
         # Find out which instruction it is, and replace it with real instructions
         case inst_name
@@ -227,9 +229,9 @@ if(file_specified && file_exists)
   input_file.close
   #END OF THIRD PASS
 
-  section_hash.each do |name, val|
-    puts "Section: #{name}, Address: #{val}"
-  end
+#  section_hash.each do |name, val|
+#    puts "Section: #{name}, Address: #{val}"
+#  end
 
   input_file = File.open("temp.a32", "r")
 
@@ -332,7 +334,6 @@ if(file_specified && file_exists)
             #negative number, 2's complement it
             imm_val = imm_val.to_i.abs
             imm_val = (~imm_val + 1).to_s(16)[1..-1]
-#            puts "Neg Imm val: #{imm_val}"
             if imm_val.length < 4
               imm_val = ("1" * (4-imm_val.length)) + imm_val
             end
@@ -342,14 +343,9 @@ if(file_specified && file_exists)
               imm_val = ("0" * (4-imm_val.length)) + imm_val
             end
           end
-#          puts "opcode: #{data_bin}"
-#          puts "reg1: #{reg1}"
-#          puts "reg0: #{reg0}"
-#          puts "Imm val: #{imm_val}"
 
           data_bin = [data_bin, reg1, reg0].join.to_i(2).to_s(16)
           data_bin += imm_val
-#          puts "Data bin: #{data_bin}"
         end
 
         mem_inst = ["lw", "sw"]
@@ -390,15 +386,9 @@ if(file_specified && file_exists)
             end
           end
 
-#          puts "opcode: #{data_bin}"
-#          puts "reg code: #{reg_code}"
-#          puts "reg1: #{reg1}"
-
           data_bin += [reg_code, reg1].join
           data_bin = data_bin.to_i(2).to_s(16)
           data_bin += imm_num
-
-#          puts "Opcode: #{opcode}, mem data bin: #{data_bin}"
         end
 
         jumps = ["jal", "beq", "bne"]
@@ -427,13 +417,13 @@ if(file_specified && file_exists)
             imm_val = section_hash[imm_val.downcase]
             imm_val = ("0" * (4-imm_val.length)) + imm_val
           end
-          data_bin = [data_bin, reg0, reg1].join.to_i(2).to_s(16)
-#          puts "Data Bin: #{data_bin}"
-#          puts "Reg1: #{reg1}"
-#          puts "Reg0: #{reg0}"
-#          puts "Imm val: #{imm_val}"
-
-          data_bin += imm_val
+          if jumps.index(opcode) > 0
+            data_bin = [data_bin, reg0, reg1].join.to_i(2).to_s(16)
+           data_bin += imm_val
+          else
+            data_bin  = [data_bin, reg1, reg0].join.to_i(2).to_s(16)
+            data_bin += imm_val
+          end
         end
 
         line_cnt+=1
@@ -445,31 +435,31 @@ if(file_specified && file_exists)
         opcode = opcode.strip.downcase
         code_str = opcode2_hash[opcode]
         data_bin = opcode1_hash["alur"]
-        puts "Init data bin: #{data_bin}"
 
         regs = regs.split(",")
+        reg_arr = Array.new
         regs.each do |name|
           reg_str = register_hash[name]
-          data_bin += reg_str
-          puts "Add register: #{data_bin}"
+          if reg_str
+            reg_arr << reg_str
+          end
         end
+
+        data_bin += [reg_arr[1], reg_arr[2], reg_arr[0]].join
 
         data_bin += "00000"
         data_bin += code_str
-        puts "add op2: #{data_bin}"
 
         data_bin = data_bin.to_i(2).to_s(16)
-        if data_bin.length<8
-          data_bin = ("0" * (8-data_bin.length)) + data_bin
-        end
-        puts "Fin data bin: #{data_bin}"
-
         line_cnt+=1
         write = true
       end
 
       if write
         #make the complete instruction in hex
+        if data_bin.length<8
+          data_bin = ("0" * (8-data_bin.length)) + data_bin
+        end
         data_string += [data_bin.downcase, ";"].join
         output_file.puts inst_string
         output_file.puts data_string
@@ -477,7 +467,7 @@ if(file_specified && file_exists)
     end
   end
 
-  #TODO mark ny unused memory addresses as DEAD
+  #Mark ny unused memory addresses as DEAD
   max_mem = 2047
   max_str = max_mem.to_s(16)
   max_str = ("0" * (5-max_str.length)) + max_str
