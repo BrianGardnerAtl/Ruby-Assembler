@@ -20,10 +20,11 @@ opcode1_hash = { "alur" => "000000", "andi" => "000001", "ori" => "000010", "hi"
                }
 
 # Store instruction/opcode2 as key/value pair
-opcode2_hash = {  "and" => "000001", "or" => "000010", "xor" => "000011", "nand" => "000101",
-                  "nor" => "000110", "nxor" => "000111", "add" => "010000", "sub" => "010001",
+#TODO change opcode values to match those in the test file
+opcode2_hash = {  "and" => "001001", "or" => "001010", "xor" => "001011", "nand" => "001101",
+                  "nor" => "001110", "nxor" => "001111", "add" => "010000", "sub" => "010001",
                   "eq" => "100001", "lt" => "100010", "le" => "100011", "ne" => "100101",
-                  "ge" => "100110", "gt" => "100111"
+                  "ge" => "100110", "gt" => "100111", "noop" => "000000"
                }
 
 pseudo_inst = ["subi", "not", "br", "blt", "ble", "bgt", "bge", "call", "jmp", "ret"]
@@ -48,7 +49,6 @@ if(file_specified)
     puts "Invalid file name. Please enter valid .a32 file for assembly"
     file_exists = false
   else
-    #TODO check for .a32 file extension
     file_exists = true
   end
 end
@@ -62,7 +62,6 @@ if(file_specified && file_exists)
   output_file_name = [file_name, "mif"].join('.')
   puts "Creating output file: #{output_file_name}"
 
-  #TODO check if output file already exists
   output_file = File.new(output_file_name, "w")
 
   #Put the file headers in the output file
@@ -196,8 +195,8 @@ if(file_specified && file_exists)
 
   #THIRD PASS set up the section hash and their memory addresses
   while (line = input_file.gets)
-    section_hex = (line_cnt*4).to_s(16)
-    section_hex = ("0" * (8-section_hex.length)) + section_hex
+    #TODO change value stored in section_hash to make calculation of imm values easier
+    section_line = line_cnt
 
     if line =~ orig_regex
       orig, mem_addr = line.split(' ')
@@ -213,7 +212,7 @@ if(file_specified && file_exists)
     if is_section = line =~ section_regex
       sec_name = section_regex.match(line)[0]
       if sec_name
-        section_hash[sec_name[0..-2].downcase] = section_hex[-4..-1]
+        section_hash[sec_name[0..-2].downcase] = section_line
       end
       next
     end
@@ -229,9 +228,10 @@ if(file_specified && file_exists)
   input_file.close
   #END OF THIRD PASS
 
-#  section_hash.each do |name, val|
-#    puts "Section: #{name}, Address: #{val}"
+#  section_hash.each do |name, value|
+#    puts "section name: #{name}, value: #{value}"
 #  end
+
 
   input_file = File.open("temp.a32", "r")
 
@@ -320,10 +320,27 @@ if(file_specified && file_exists)
         if itype.index(opcode)
           reg0 =  register_hash[regs[0].downcase]
           reg1 = register_hash[regs[1].downcase]
-          imm_val = regs[2].downcase
+          imm_val = regs[2]
 
-          if section_hash[imm_val]
-            imm_val = section_hash[imm_val]
+          if section_hash[imm_val.downcase]
+            imm_val = section_hash[imm_val.downcase] * 4
+            if imm_val < 0
+              imm_val = sprintf("%b", imm_val)[2..-1]
+              if imm_val.length<16
+                imm_val = ("1"*(16-imm_val.length))+imm_val
+              end
+              #Change the imm_val to hex
+              hex0 = imm_val[0..3].to_i(2).to_s(16)
+              hex1 = imm_val[4..7].to_i(2).to_s(16)
+              hex2 = imm_val[8..11].to_i(2).to_s(16)
+              hex3 = imm_val[12..15].to_i(2).to_s(16)
+              imm_val = hex0+hex1+hex2+hex3
+            else
+              imm_val = imm_val.to_s(16)
+              if imm_val.length<4
+                imm_val = ("0" * (4-imm_val.length)) + imm_val
+              end
+            end
           elsif imm_val =~ /0x/
             #extract hex value
             imm_val = imm_val.split('0x')[1]
@@ -331,12 +348,17 @@ if(file_specified && file_exists)
               imm_val = ("0" * (4-imm_val.length)) + imm_val
             end
           elsif imm_val =~ /\-/
-            #negative number, 2's complement it
-            imm_val = imm_val.to_i.abs
-            imm_val = (~imm_val + 1).to_s(16)[1..-1]
-            if imm_val.length < 4
-              imm_val = ("1" * (4-imm_val.length)) + imm_val
+            imm_val = imm_val.to_i
+            imm_val = sprintf("%b", imm_val)[2..-1]
+            if imm_val.length<16
+              imm_val = ("1"*(16-imm_val.length))+imm_val
             end
+            #Change the imm_val to hex
+            hex0 = imm_val[0..3].to_i(2).to_s(16)
+            hex1 = imm_val[4..7].to_i(2).to_s(16)
+            hex2 = imm_val[8..11].to_i(2).to_s(16)
+            hex3 = imm_val[12..15].to_i(2).to_s(16)
+            imm_val = hex0+hex1+hex2+hex3
           else
             imm_val = imm_val.to_i.to_s(16)
             if imm_val.length<4
@@ -345,7 +367,7 @@ if(file_specified && file_exists)
           end
 
           data_bin = [data_bin, reg1, reg0].join.to_i(2).to_s(16)
-          data_bin += imm_val
+          data_bin += imm_val.to_s
         end
 
         mem_inst = ["lw", "sw"]
@@ -363,14 +385,17 @@ if(file_specified && file_exists)
           else
             #not a name keyword, must just be an integer
             if addr =~ /\-/
-              #negative number, 2's complement it
-              imm_num = addr.to_i.abs
-              imm_num = (~imm_num + 1).to_s(2)[1..-1]
-              #change to hex string
-              imm_num = imm_num.to_i(2).to_s(16)
-              if imm_num.length<4
-                imm_num = ("0" * (4-imm_num.length)) + imm_num
+              imm_num = addr.to_i
+              imm_num = sprintf("%b", imm_num)[2..-1]
+              if imm_num.length<16
+                imm_num = ("1"*(16-imm_num.length))+imm_num
               end
+              #Change the imm_val to hex
+              hex0 = imm_num[0..3].to_i(2).to_s(16)
+              hex1 = imm_num[4..7].to_i(2).to_s(16)
+              hex2 = imm_num[8..11].to_i(2).to_s(16)
+              hex3 = imm_num[12..15].to_i(2).to_s(16)
+              imm_num = hex0+hex1+hex2+hex3
             else
               #positive number
               imm_num = addr.to_i.to_s(2)
@@ -397,11 +422,15 @@ if(file_specified && file_exists)
             reg0 = register_hash[regs[0].downcase]
             imm_val = regs[1]
             if imm_val =~ /\(/
-              # immediate value is of the form 0(t0)
+              puts "Imm val: #{imm_val} line count: #{line_cnt}"
+              # immediate value is of the form Imm(t0)
               temp = imm_val.split('(')
               reg1 = temp[1][0..-2].downcase
               reg1 = register_hash[reg1]
               imm_val = temp[0]
+              if section_hash[imm_val.downcase]
+                imm_val = section_hash[imm_val.downcase].to_s(16)
+              end
               if imm_val.length<4
                 imm_val = ("0" * (4-imm_val.length)) + imm_val
               end
@@ -414,15 +443,32 @@ if(file_specified && file_exists)
             imm_val = regs[2]
           end
           if section_hash[imm_val.downcase]
-            imm_val = section_hash[imm_val.downcase]
-            imm_val = ("0" * (4-imm_val.length)) + imm_val
+            imm_val = section_hash[imm_val.downcase] - line_cnt - 1
+            if imm_val < 0
+              imm_val = sprintf("%b", imm_val)[2..-1]
+              if imm_val.length<16
+                imm_val = ("1"*(16-imm_val.length))+imm_val
+              end
+              #Change the imm_val to hex
+              hex0 = imm_val[0..3].to_i(2).to_s(16)
+              hex1 = imm_val[4..7].to_i(2).to_s(16)
+              hex2 = imm_val[8..11].to_i(2).to_s(16)
+              hex3 = imm_val[12..15].to_i(2).to_s(16)
+              imm_val = hex0+hex1+hex2+hex3
+            else
+              imm_val = imm_val.to_s(16)
+            end
+          end
+          #TODO Fix the immediate values added to the end of data_bin
+          if imm_val.length<4
+            imm_val = ("0"*(4-imm_val.length)) + imm_val
           end
           if jumps.index(opcode) > 0
             data_bin = [data_bin, reg0, reg1].join.to_i(2).to_s(16)
-           data_bin += imm_val
+            data_bin += imm_val.to_s
           else
             data_bin  = [data_bin, reg1, reg0].join.to_i(2).to_s(16)
-            data_bin += imm_val
+            data_bin += imm_val.to_s
           end
         end
 
@@ -470,9 +516,9 @@ if(file_specified && file_exists)
   #Mark ny unused memory addresses as DEAD
   max_mem = 2047
   max_str = max_mem.to_s(16)
-  max_str = ("0" * (5-max_str.length)) + max_str
+  max_str = ("0" * (4-max_str.length)) + max_str
   code_hex = line_cnt.to_s(16)
-  code_hex = ("0" * (5-code_hex.length)) + code_hex
+  code_hex = ("0" * (4-code_hex.length)) + code_hex
   dead_line = "[#{code_hex}..#{max_str}] : DEAD;"
   output_file.puts dead_line
   end_line = "END;"
